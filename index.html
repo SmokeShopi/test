@@ -2,43 +2,107 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мой Shikimori Плеер</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Multi-Mirror Player</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        input { padding: 10px; width: 200px; border-radius: 5px; border: none; margin-bottom: 20px; }
-        button { padding: 10px 20px; border-radius: 5px; border: none; background: #ff4500; color: white; cursor: pointer; }
-        .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        body { background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        
+        .header { margin-bottom: 30px; }
+        h1 { color: #ff4500; margin-bottom: 10px; }
+        
+        .search-section { background: #1a1a1a; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #333; }
+        input { padding: 12px; width: 200px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-size: 16px; }
+        
+        /* Стили для кнопок зеркал */
+        .mirror-selector { margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .mirror-btn { padding: 8px 15px; border-radius: 6px; border: 1px solid #ff4500; background: transparent; color: #ff4500; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .mirror-btn.active { background: #ff4500; color: white; }
+        .mirror-btn:hover { background: rgba(255, 69, 0, 0.1); }
+
+        .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
+        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        
+        .status-tag { margin-top: 10px; font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Anime Player (by Shikimori ID)</h1>
+    <div class="header">
+        <h1>Anime Player</h1>
+        <p>Используем базу Shikimori + балансер Kodik</p>
+    </div>
     
-    <input type="number" id="shikiId" placeholder="Введите Shikimori ID (напр. 20)">
-    <button onclick="loadAnime()">Смотреть</button>
+    <div class="search-section">
+        <input type="number" id="shikiId" placeholder="ID (например, 5114)" value="5114">
+        <button onclick="updatePlayer()" style="padding: 12px 25px; border-radius: 8px; background: #ff4500; color: white; border: none; cursor: pointer; font-weight: bold;">Загрузить</button>
+        
+        <div class="mirror-selector" id="mirrorList">
+            </div>
+        <div class="status-tag" id="currentMirrorDisplay">Текущее зеркало: не выбрано</div>
+    </div>
 
     <div class="player-wrapper">
-        <iframe id="kodik-player" src="" allowfullscreen></iframe>
+        <iframe id="main-player" src="" allowfullscreen></iframe>
     </div>
 </div>
 
 <script>
-    function loadAnime() {
-        const id = document.getElementById('shikiId').value;
-        if (!id) {
-            alert("Введите ID аниме!");
-            return;
-        }
-        
-        // Базовая ссылка Kodik, которая ищет по Shikimori ID
-        // Мы используем один из их общих доменов (зеркал)
-        const playerUrl = `https://p.kodik.online/find-player?shikimori_id=${id}`;
-        
-        document.getElementById('kodik-player').src = playerUrl;
+    // Список актуальных зеркал Kodik
+    const mirrors = [
+        "kodik.info",
+        "p.kodik.online",
+        "31348.kodik.online",
+        "video.kodik.online",
+        "kodik.biz",
+        "kinokodik.net"
+    ];
+
+    let currentMirror = mirrors[0];
+
+    // Создаем кнопки зеркал при загрузке
+    function initMirrors() {
+        const container = document.getElementById('mirrorList');
+        mirrors.forEach((m, index) => {
+            const btn = document.createElement('button');
+            btn.className = `mirror-btn ${index === 0 ? 'active' : ''}`;
+            btn.innerText = `Зеркало ${index + 1}`;
+            btn.onclick = () => setMirror(m, btn);
+            container.appendChild(btn);
+        });
     }
+
+    function setMirror(domain, btnElement) {
+        currentMirror = domain;
+        // Обновляем визуальный статус кнопок
+        document.querySelectorAll('.mirror-btn').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        document.getElementById('currentMirrorDisplay').innerText = `Текущее зеркало: ${domain}`;
+        updatePlayer();
+    }
+
+    function updatePlayer() {
+        const id = document.getElementById('shikiId').value;
+        if (!id) return;
+        
+        const playerUrl = `https://${currentMirror}/find-player?shikimori_id=${id}`;
+        document.getElementById('main-player').src = playerUrl;
+    }
+
+    // Запуск при старте
+    window.onload = () => {
+        initMirrors();
+        document.getElementById('currentMirrorDisplay').innerText = `Текущее зеркало: ${currentMirror}`;
+        
+        // Авто-загрузка если в URL есть ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id) {
+            document.getElementById('shikiId').value = id;
+        }
+        updatePlayer();
+    };
 </script>
 
 </body>
