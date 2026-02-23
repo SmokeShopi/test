@@ -2,18 +2,44 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мой Аниме Плеер</title>
+    <title>Мой Shikimori Плеер</title>
     <style>
-        body { background: #000; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .player-container { width: 80%; aspect-ratio: 16/9; border: 2px solid #ff4500; }
-        iframe { width: 100%; height: 100%; border: none; }
+        body { background: #121212; color: white; font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        input { padding: 10px; width: 200px; border-radius: 5px; border: none; margin-bottom: 20px; }
+        button { padding: 10px 20px; border-radius: 5px; border: none; background: #ff4500; color: white; cursor: pointer; }
+        .player-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
-    <div class="player-container">
-        <iframe src="https://base-domains.com/serial/12345/hash/789?season=1&episode=1" allowfullscreen></iframe>
+<div class="container">
+    <h1>Anime Player (by Shikimori ID)</h1>
+    
+    <input type="number" id="shikiId" placeholder="Введите Shikimori ID (напр. 20)">
+    <button onclick="loadAnime()">Смотреть</button>
+
+    <div class="player-wrapper">
+        <iframe id="kodik-player" src="" allowfullscreen></iframe>
     </div>
+</div>
+
+<script>
+    function loadAnime() {
+        const id = document.getElementById('shikiId').value;
+        if (!id) {
+            alert("Введите ID аниме!");
+            return;
+        }
+        
+        // Базовая ссылка Kodik, которая ищет по Shikimori ID
+        // Мы используем один из их общих доменов (зеркал)
+        const playerUrl = `https://p.kodik.online/find-player?shikimori_id=${id}`;
+        
+        document.getElementById('kodik-player').src = playerUrl;
+    }
+</script>
 
 </body>
 </html>
