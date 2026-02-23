@@ -2,92 +2,79 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Anime Ultimate Parser</title>
+    <title>Anime Smart Engine v6</title>
     <style>
-        body { background: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 900px; margin: auto; }
-        .panel { background: #111; padding: 20px; border-radius: 15px; border: 1px solid #222; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        input { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; width: 200px; font-size: 16px; outline: none; }
-        input:focus { border-color: #ff4500; }
-        button { padding: 12px 24px; border-radius: 8px; border: none; background: #ff4500; color: #fff; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.8; transform: translateY(-1px); }
-        .source-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 15px; }
-        .src-btn { background: #222; border: 1px solid #333; padding: 8px 12px; font-size: 12px; color: #aaa; cursor: pointer; border-radius: 5px; }
-        .src-btn.active { border-color: #ff4500; color: #ff4500; background: rgba(255, 69, 0, 0.1); }
-        .player-wrapper { position: relative; padding-bottom: 56.25%; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #222; }
+        :root { --accent: #ff4500; --bg: #0a0a0a; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        .card { background: #141414; padding: 20px; border-radius: 15px; border: 1px solid #222; max-width: 900px; margin: auto; }
+        input { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; width: 150px; }
+        button { padding: 12px 20px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-weight: bold; cursor: pointer; }
+        .sources { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px 0; }
+        .src-btn { background: #222; border: 1px solid #333; padding: 7px 12px; font-size: 11px; color: #888; cursor: pointer; border-radius: 5px; }
+        .src-btn.active { border-color: var(--accent); color: var(--accent); }
+        .player-wrap { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #222; margin-top: 20px; }
         iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-        .status { margin-top: 10px; font-size: 12px; color: #555; }
+        .debug-info { margin-top: 10px; font-size: 11px; color: #444; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1 style="color: #ff4500; font-size: 24px;">ANIME PARSER v4</h1>
+<div class="card">
+    <h1>SMART PLAYER</h1>
+    <input type="number" id="shikiId" value="5114">
+    <button onclick="load()">СМОТРЕТЬ</button>
 
-    <div class="panel">
-        <input type="number" id="shikiId" value="5114" placeholder="ID Shikimori">
-        <button onclick="load()">СМОТРЕТЬ</button>
-        
-        <div class="source-grid" id="sourceGrid">
-            </div>
+    <div class="sources" id="sourceBtns"></div>
+    
+    <div class="player-wrap">
+        <iframe id="ifr" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
     </div>
-
-    <div class="player-wrapper">
-        <iframe id="video-frame" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
-    </div>
-
-    <div class="status" id="status-bar">Готов к загрузке</div>
+    <div class="debug-info" id="dblog"></div>
 </div>
 
 <script>
-    // Список актуальных доменов, вдохновленный предоставленными репозиториями
-    const sources = [
-        { name: "Kodik Biz", url: "https://kodik.biz/find-player?shikimori_id=" },
-        { name: "Kodik Online", url: "https://video.kodik.online/find-player?shikimori_id=" },
-        { name: "Kodik API", url: "https://kodikapi.com/find-player?shikimori_id=" },
-        { name: "Alloha", url: "https://api.alloha.tv/?shikimori_id=" },
-        { name: "Collaps", url: "https://api.collaps.org/embed/shikimori/" }
+    // Самые надежные форматы ссылок на 2026 год
+    const config = [
+        { name: "Kodik Biz", base: "https://kodik.biz/find-player?shikimori_id=", type: "kodik" },
+        { name: "Kodik VIP", base: "https://kodikapi.com/find-player?shikimori_id=", type: "kodik" },
+        { name: "Alloha", base: "https://api.alloha.tv/?shikimori_id=", type: "alloha" },
+        { name: "Collaps", base: "https://api.collaps.org/embed/shikimori/", type: "collaps" }
     ];
 
-    let currentBase = sources[0].url;
+    let current = 0;
 
-    function init() {
-        const grid = document.getElementById('sourceGrid');
-        sources.forEach((s, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'src-btn' + (i === 0 ? ' active' : '');
-            btn.innerText = s.name;
-            btn.onclick = () => {
-                currentBase = s.url;
-                document.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                load();
-            };
-            grid.appendChild(btn);
+    function render() {
+        const div = document.getElementById('sourceBtns');
+        div.innerHTML = '';
+        config.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'src-btn' + (i === current ? ' active' : '');
+            b.innerText = s.name;
+            b.onclick = () => { current = i; render(); load(); };
+            div.appendChild(b);
         });
-        load();
     }
 
     function load() {
         const id = document.getElementById('shikiId').value;
-        const frame = document.getElementById('video-frame');
-        const statusBar = document.getElementById('status-bar');
+        const ifr = document.getElementById('ifr');
+        const log = document.getElementById('dblog');
+        const s = config[current];
         
-        let finalUrl = currentBase + id;
-        
-        // Добавляем типы только если это Kodik домен
-        if (currentBase.includes('kodik')) {
-            // В репозитории AnimeParsers часто используют именно такой порядок типов
-            finalUrl += "&types=anime-serial,anime";
+        let url = s.base + id;
+
+        // Если Kodik требует токен или выдает дорамы, пробуем чистую ссылку
+        // БЕЗ лишних параметров, чтобы избежать 404
+        if (s.type === "kodik") {
+            // Если Kodik Biz не находит, пробуем добавить типы
+            url += "&types=anime-serial,anime";
         }
 
-        frame.src = finalUrl;
-        statusBar.innerText = "Загрузка с: " + currentBase;
-        console.log("URL:", finalUrl);
+        ifr.src = url;
+        log.innerText = "Current URL: " + url;
     }
 
-    window.onload = init;
+    window.onload = () => { render(); load(); };
 </script>
-
 </body>
 </html>
