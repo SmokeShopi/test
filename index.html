@@ -2,79 +2,79 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Anime Smart Engine v6</title>
+    <title>Anime Fix Final</title>
     <style>
-        :root { --accent: #ff4500; --bg: #0a0a0a; }
-        body { background: var(--bg); color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-        .card { background: #141414; padding: 20px; border-radius: 15px; border: 1px solid #222; max-width: 900px; margin: auto; }
-        input { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; width: 150px; }
-        button { padding: 12px 20px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-weight: bold; cursor: pointer; }
-        .sources { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px 0; }
-        .src-btn { background: #222; border: 1px solid #333; padding: 7px 12px; font-size: 11px; color: #888; cursor: pointer; border-radius: 5px; }
-        .src-btn.active { border-color: var(--accent); color: var(--accent); }
-        .player-wrap { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #222; margin-top: 20px; }
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .box { max-width: 900px; margin: auto; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; }
+        input { padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: #fff; width: 120px; }
+        button { padding: 12px 20px; border-radius: 10px; border: none; background: #ff4500; color: #fff; cursor: pointer; font-weight: bold; }
+        .links { margin: 20px 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .btn-s { background: #333; padding: 8px 15px; border-radius: 8px; font-size: 12px; color: #eee; cursor: pointer; border: 1px solid #444; }
+        .btn-s.active { background: #ff4500; border-color: #ff4500; }
+        .player { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #444; }
         iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-        .debug-info { margin-top: 10px; font-size: 11px; color: #444; }
+        .warning { color: #666; font-size: 12px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>SMART PLAYER</h1>
-    <input type="number" id="shikiId" value="5114">
-    <button onclick="load()">СМОТРЕТЬ</button>
+<div class="box">
+    <h2 style="color:#ff4500">ANIME NO-TOKEN PLAYER</h2>
+    <input type="number" id="id" value="5114">
+    <button onclick="play()">ИГРАТЬ</button>
 
-    <div class="sources" id="sourceBtns"></div>
-    
-    <div class="player-wrap">
-        <iframe id="ifr" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
+    <div class="links" id="menu"></div>
+
+    <div class="player">
+        <iframe id="v" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
     </div>
-    <div class="debug-info" id="dblog"></div>
+    
+    <div class="warning">
+        Если везде черный экран — попробуйте отключить AdBlock или включить VPN.<br>
+        На GitHub Pages часто блокируется "Referrer", мы пытаемся его скрыть.
+    </div>
 </div>
 
 <script>
-    // Самые надежные форматы ссылок на 2026 год
-    const config = [
-        { name: "Kodik Biz", base: "https://kodik.biz/find-player?shikimori_id=", type: "kodik" },
-        { name: "Kodik VIP", base: "https://kodikapi.com/find-player?shikimori_id=", type: "kodik" },
-        { name: "Alloha", base: "https://api.alloha.tv/?shikimori_id=", type: "alloha" },
-        { name: "Collaps", base: "https://api.collaps.org/embed/shikimori/", type: "collaps" }
+    // Самые простые ссылки, которые работают БЕЗ ключей API
+    const srvs = [
+        { n: "Kodik 1", u: "//kodik.info/find-player?shikimori_id=" },
+        { n: "Kodik 2", u: "//kodik.cc/find-player?shikimori_id=" },
+        { n: "Kodik 3", u: "//kodik.biz/find-player?shikimori_id=" },
+        { n: "Alloha", u: "https://api.alloha.tv/?shikimori_id=" },
+        { n: "Collaps", u: "https://api.collaps.org/embed/shikimori/" },
+        { n: "Vibix", u: "https://vibix.org/embed/shikimori/" }
     ];
 
-    let current = 0;
+    let cur = 0;
 
-    function render() {
-        const div = document.getElementById('sourceBtns');
-        div.innerHTML = '';
-        config.forEach((s, i) => {
-            const b = document.createElement('button');
-            b.className = 'src-btn' + (i === current ? ' active' : '');
-            b.innerText = s.name;
-            b.onclick = () => { current = i; render(); load(); };
-            div.appendChild(b);
+    function build() {
+        const m = document.getElementById('menu');
+        m.innerHTML = '';
+        srvs.forEach((s, i) => {
+            const b = document.createElement('div');
+            b.className = 'btn-s' + (i === cur ? ' active' : '');
+            b.innerText = s.n;
+            b.onclick = () => { cur = i; build(); play(); };
+            m.appendChild(b);
         });
     }
 
-    function load() {
-        const id = document.getElementById('shikiId').value;
-        const ifr = document.getElementById('ifr');
-        const log = document.getElementById('dblog');
-        const s = config[current];
-        
-        let url = s.base + id;
+    function play() {
+        const id = document.getElementById('id').value;
+        const f = document.getElementById('v');
+        let link = srvs[cur].u + id;
 
-        // Если Kodik требует токен или выдает дорамы, пробуем чистую ссылку
-        // БЕЗ лишних параметров, чтобы избежать 404
-        if (s.type === "kodik") {
-            // Если Kodik Biz не находит, пробуем добавить типы
-            url += "&types=anime-serial,anime";
+        // Для Кодика добавляем фильтр, чтобы не вылезали дорамы
+        if (srvs[cur].n.includes("Kodik")) {
+            link += "&types=anime-serial,anime";
         }
 
-        ifr.src = url;
-        log.innerText = "Current URL: " + url;
+        f.src = link;
     }
 
-    window.onload = () => { render(); load(); };
+    window.onload = () => { build(); play(); };
 </script>
+
 </body>
 </html>
